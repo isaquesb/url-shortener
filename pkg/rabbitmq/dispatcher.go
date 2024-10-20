@@ -11,8 +11,9 @@ import (
 )
 
 type Dispatcher struct {
-	conn    *amqp.Connection
-	channel *amqp.Channel
+	conn           *amqp.Connection
+	channel        *amqp.Channel
+	declaredQueues map[string]bool
 }
 
 func NewDispatcher(cfg map[string]interface{}) (output.Dispatcher, error) {
@@ -31,22 +32,10 @@ func NewDispatcher(cfg map[string]interface{}) (output.Dispatcher, error) {
 		return nil, err
 	}
 
-	_, err = ch.QueueDeclare(
-		"url-shortener", // name
-		true,            // durable
-		false,           // delete when unused
-		false,           // exclusive
-		false,           // no-wait
-		nil,             // arguments
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
 	return &Dispatcher{
-		conn:    conn,
-		channel: ch,
+		conn:           conn,
+		channel:        ch,
+		declaredQueues: map[string]bool{},
 	}, nil
 }
 
@@ -60,6 +49,10 @@ func (dp *Dispatcher) Close() {
 }
 
 func (dp *Dispatcher) Dispatch(ctx context.Context, msg events.Event) error {
+	if err := dp.declareQueue(msg.GetName()); err != nil {
+		return err
+	}
+
 	encoded, err := json.Marshal(events.Envelop{
 		Name:  msg.GetName(),
 		Event: msg,
@@ -68,13 +61,13 @@ func (dp *Dispatcher) Dispatch(ctx context.Context, msg events.Event) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	publishCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	return dp.channel.PublishWithContext(
-		ctx,
+		publishCtx,
 		msg.GetName(), // Exchange
-		msg.GetName(), // Routing key
+		"",            // Routing key
 		false,         // Mandatory
 		false,         // Immediate
 		amqp.Publishing{
@@ -82,4 +75,22 @@ func (dp *Dispatcher) Dispatch(ctx context.Context, msg events.Event) error {
 			Body:        encoded,
 		},
 	)
+}
+
+func (dp *Dispatcher) declareQueue(name string) error {
+	if _, ok := dp.declaredQueues[name]; ok {
+		return nil
+	}
+	_, err := dp.channel.QueueDeclare(
+		name,  // name
+		true,  // durable
+		false, // delete when unused
+		false, // exclusive
+		false, // no-wait
+		nil,   // arguments
+	)
+
+	dp.declaredQueues[name] = true
+
+	return err
 }
