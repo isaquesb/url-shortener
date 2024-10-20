@@ -30,12 +30,14 @@ func (r *GenericResponse) GetHeaders() map[string]string {
 	return r.Headers
 }
 
+/*
 func OkResponse(status int, body string) Response {
 	return &GenericResponse{
 		Status: status,
 		Body:   body,
 	}
 }
+*/
 
 func NewResponse(status int, body string) Response {
 	return &GenericResponse{

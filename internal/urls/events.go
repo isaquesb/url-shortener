@@ -23,7 +23,7 @@ func MakeEvent(name string) (events.Event, error) {
 		return &VisitEvent{}, nil
 	}
 
-	return nil, fmt.Errorf("event not found: %s", name)
+	return nil, EventNotFound{name}
 }
 
 func EventParserFor(evtName string) func() (events.Event, error) {
@@ -74,3 +74,7 @@ func NewVisitEvent(short []byte) *VisitEvent {
 		Date:      time.Now(),
 	}
 }
+
+type EventNotFound struct{ Name string }
+
+func (e EventNotFound) Error() string { return fmt.Sprintf("event not found: %s", e.Name) }

@@ -48,6 +48,7 @@ func (ir *Router) instrumentedHandler(handlerFunc fasthttp.RequestHandler) fasth
 
 		ir.instrumentation.Metrics.HTTPRequestDuration.Record(ctx, duration, api.WithAttributes(labels...))
 		ir.instrumentation.Metrics.HTTPTotalRequestsCounter.Add(ctx, 1, api.WithAttributes(labels...))
+		span.SetAttributes(attribute.Int("status", ctx.Response.StatusCode()))
 	}
 }
 
