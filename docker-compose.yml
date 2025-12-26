@@ -54,13 +54,13 @@ services:
       - AWS_SECRET_ACCESS_KEY=foobar
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.4.13
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.4.13
     depends_on:
       - zookeeper
     ports:
@@ -237,10 +237,6 @@ services:
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-
-networks:
-  broker-kafka:
-    driver: bridge
 
 volumes:
   certs:
